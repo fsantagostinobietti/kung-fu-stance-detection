@@ -20,6 +20,27 @@ if (status) {
   status.innerText = 'Loaded TensorFlow.js - version: ' + tf.version.tfjs;
 }
 
-// load 4-stances classifier 
-const tfliteModel = tflite.loadTFLiteModel('model-stances.tflite');
+async function start() {
+  // load 4-stances classifier 
+  const tfliteModel = await tflite.loadTFLiteModel('model-stances.tflite');
+  console.info(tfliteModel);
 
+  imgTensor = tf.browser.fromPixels(document.querySelector("img"));
+  console.info(imgTensor.shape);
+  const inputTensor = tf.image
+    // Resize.
+    .resizeBilinear(imgTensor, [224, 224])  // shape [224, 224, 3]
+    // Normalize.
+    .expandDims() // shape [1, 224, 224, 3]
+    .div(127.5)
+    .sub(1);  // values in range (-1, +1)
+  console.info(inputTensor.shape);
+  //inputTensor.print();
+
+  // Run the inference and get the output tensors.
+  const outputTensor = tfliteModel.predict(inputTensor);
+  outputTensor.print();
+}
+
+start();
+console.info('End')
