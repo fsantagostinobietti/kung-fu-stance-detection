@@ -17,7 +17,7 @@
 
 const status = document.getElementById('status');
 if (status) {
-  status.innerText = 'Loaded TensorFlow.js - version: ' + tf.version.tfjs;
+  status.innerText = 'TensorFlow.js - version: ' + tf.version.tfjs;
 }
 
 //TODO load from 'labels.txt' 
@@ -55,7 +55,9 @@ function classifyPic() {
   console.info("Class label:", CLASS_LABEL[classIdx], 
     " - Probability:", (100*classProb).toFixed()+"%");
   // display result
-  document.getElementById('pic-classification')
+  document.querySelector('#pic-classification > img')
+    .src = 'imgs/'+CLASS_LABEL[classIdx].toLowerCase()+'.png';
+  document.querySelector('#pic-classification > p')
     .innerHTML = CLASS_LABEL[classIdx].toUpperCase()+" (Prob. "+(100*classProb).toFixed()+"%)";
 }
 
@@ -73,9 +75,6 @@ const NUM_PICS = 12;
 
 function loadPic(src) {
   document.getElementById("pic").setAttribute('src',src);
-  // reset message
-  document.getElementById('pic-classification')
-    .innerHTML = "Classification ...";
 }
 
 function loadInitialPic() {
@@ -118,7 +117,7 @@ function loadPicFromFile(evt) {
 // MAIN
 //
 
-// action: classify every new image loaded in <img> tag
+// action: trigger classification when new image is loaded in <img>
 document.getElementById('pic').onload = function() {
   classifyPic();
 }
