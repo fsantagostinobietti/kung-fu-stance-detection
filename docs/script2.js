@@ -21,7 +21,8 @@ if (status) {
 }
 
 //TODO load from 'labels.txt' 
-const CLASS_LABEL = ['back_stance', 'bow_stance', 'cat_stance', 'horse_stance'];
+const CLASS_LABEL = ['back_stance', 'bow_stance', 'cat_stance', 'horse_stance', 'unrecognised_stance'];
+
 
 // classifier tflite model
 let tfliteModel;
@@ -44,16 +45,22 @@ function classifyPic() {
   outputTensor.print();
   //console.info("outputTensor shape:", outputTensor.shape);
 
-  const classIdx = outputTensor
+  let classIdx = outputTensor
     // find index of max probability
     .argMax(axis=1)
     // convert tensor in js array and pick value
     .arraySync()[0];
-  const classProb = outputTensor
+  let classProb = outputTensor
     // convert tensor in js array and pick value
     .arraySync()[0][classIdx];
   console.info("Class label:", CLASS_LABEL[classIdx], 
     " - Probability:", (100*classProb).toFixed()+"%");
+  // detect unrecognised stance
+  if (classProb < 0.45) {
+    classIdx = CLASS_LABEL.length-1;
+    classProb = (1-classProb)/(1-1/(CLASS_LABEL.length-1));
+  }
+
   // display result
   document.querySelector('#pic-classification > img')
     .src = 'imgs/'+CLASS_LABEL[classIdx].toLowerCase()+'.png';
