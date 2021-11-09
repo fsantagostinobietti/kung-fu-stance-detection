@@ -25,7 +25,7 @@ const CLASS_LABEL = ['back_stance', 'bow_stance', 'cat_stance', 'horse_stance', 
 
 
 // classifier tflite model
-let tfliteModel;
+let tfliteAllModel;
 
 function classifyPic() {
   const imgTensor = tf.browser.fromPixels(document.querySelector("img"));
@@ -41,7 +41,7 @@ function classifyPic() {
   //inputTensor.print();
 
   // Run the inference and get the output tensors.
-  const outputTensor = tfliteModel.predict(inputTensor);  // shape [1, 4]
+  const outputTensor = tfliteAllModel.predict(inputTensor);  // shape [1, 4]
   outputTensor.print();
   //console.info("outputTensor shape:", outputTensor.shape);
 
@@ -70,8 +70,8 @@ function classifyPic() {
 
 async function loadModel() {
   // load 4-stances classifier tflite model
-  tfliteModel = await tflite.loadTFLiteModel('model-stances.tflite');
-  //console.info(tfliteModel);
+  tfliteAllModel = await tflite.loadTFLiteModel('model-all-stances.tflite');
+  //console.info(tfliteAllModel);
 }
 
 function getRandomInt(max) {
