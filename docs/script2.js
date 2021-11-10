@@ -35,8 +35,7 @@ function classifyPic() {
     .resizeBilinear(imgTensor, [224, 224])  // shape [224, 224, 3]
     // Normalize.
     .expandDims() // shape [1, 224, 224, 3]
-    .div(127.5)
-    .sub(1);  // values in range (-1, +1)
+    .div(255); // values in range (0, 1)
   //console.info(inputTensor.shape);
   //inputTensor.print();
 
@@ -70,7 +69,7 @@ function classifyPic() {
 
 async function loadModel() {
   // load 4-stances classifier tflite model
-  tfliteAllModel = await tflite.loadTFLiteModel('model-all-stances.tflite');
+  tfliteAllModel = await tflite.loadTFLiteModel('model-all-stances.tflite'); //('model_4_quant_dynamic.tflite'); //
   //console.info(tfliteAllModel);
 }
 
