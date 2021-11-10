@@ -17,108 +17,126 @@
 
 const status = document.getElementById('status');
 if (status) {
-  status.innerText = 'Loaded TensorFlow.js - version: ' + tf.version.tfjs;
+  status.innerText = 'TensorFlow.js - version: ' + tf.version.tfjs;
 }
 
-const video = document.getElementById('webcam');
-const liveView = document.getElementById('liveView');
-const demosSection = document.getElementById('demos');
-const enableWebcamButton = document.getElementById('webcamButton');
+//TODO load from 'labels.txt' 
+const CLASS_LABEL = ['back_stance', 'bow_stance', 'cat_stance', 'horse_stance', 'unrecognised_stance'];
 
-// Check if webcam access is supported.
-function getUserMediaSupported() {
-  return !!(navigator.mediaDevices &&
-    navigator.mediaDevices.getUserMedia);
-}
 
-// If webcam supported, add event listener to button for when user
-// wants to activate it to call enableCam function which we will 
-// define in the next step.
-if (getUserMediaSupported()) {
-  enableWebcamButton.addEventListener('click', enableCam);
-} else {
-  console.warn('getUserMedia() is not supported by your browser');
-}
+// classifier tfjs web model
+let webAllModel;
 
-// Enable the live webcam view and start classification.
-function enableCam(event) {
-  // Only continue if the COCO-SSD has finished loading.
-  if (!model) {
-    return;
+function classifyPic() {
+  const imgTensor = tf.browser.fromPixels(document.querySelector("img"));
+  console.info(imgTensor.shape);
+  const inputTensor = tf.image
+    // Resize.
+    .resizeBilinear(imgTensor, [224, 224])  // shape [224, 224, 3]
+    // Normalize.
+    .expandDims() // shape [1, 224, 224, 3]
+    .div(255); // values in range (0, 1)
+  //console.info(inputTensor.shape);
+  //inputTensor.print();
+
+  // Run the inference and get the output tensors.
+  const outputTensor = webAllModel.execute(inputTensor);   // shape [1, 4]
+  outputTensor.print();
+  //console.info("outputTensor shape:", outputTensor.shape);
+
+  let classIdx = outputTensor
+    // find index of max probability
+    .argMax(axis=1)
+    // convert tensor in js array and pick value
+    .arraySync()[0];
+  let classProb = outputTensor
+    // convert tensor in js array and pick value
+    .arraySync()[0][classIdx];
+  console.info("Class label:", CLASS_LABEL[classIdx], 
+    " - Probability:", (100*classProb).toFixed()+"%");
+  // detect unrecognised stance
+  if (classProb < 0.45) {
+    classIdx = CLASS_LABEL.length-1;
+    classProb = (1-classProb)/(1-1/(CLASS_LABEL.length-1));
   }
-  
-  // Hide the button once clicked.
-  event.target.classList.add('removed');  
-  
-  // getUsermedia parameters to force video but not audio.
-  const constraints = {
-    video: true
-  };
 
-  // Activate the webcam stream.
-  navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
-    video.srcObject = stream;
-    video.addEventListener('loadeddata', predictWebcam);
-  });
+  // display result
+  document.querySelector('#pic-classification > img')
+    .src = 'imgs/'+CLASS_LABEL[classIdx].toLowerCase()+'.png';
+  document.querySelector('#pic-classification > p')
+    .innerHTML = CLASS_LABEL[classIdx].toUpperCase()+" (Prob. "+(100*classProb).toFixed()+"%)";
 }
 
-// Store the resulting model in the global scope of our app.
-var model = undefined;
+async function loadModel() {
+  // load 4-stances classifier web model
+  const MODEL_URL = 'model-uint8.tfjs/model.json';
+  webAllModel = await tf.loadGraphModel(MODEL_URL);
+  //console.info(webAllModel);
+}
 
-// Before we can use COCO-SSD class we must wait for it to finish
-// loading. Machine Learning models can be large and take a moment 
-// to get everything needed to run.
-// Note: cocoSsd is an external object loaded from our index.html
-// script tag import so ignore any warning in Glitch.
-cocoSsd.load().then(function (loadedModel) {
-  model = loadedModel;
-  // Show demo section now model is ready to use.
-  demosSection.classList.remove('invisible');
-});
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
 
-var children = [];
+const NUM_PICS = 12;
 
-function predictWebcam() {
-  // Now let's start classifying a frame in the stream.
-  model.detect(video).then(function (predictions) {
-    // Remove any highlighting we did previous frame.
-    for (let i = 0; i < children.length; i++) {
-      liveView.removeChild(children[i]);
-    }
-    children.splice(0);
-    
-    // Now lets loop through predictions and draw them to the live view if
-    // they have a high confidence score.
-    for (let n = 0; n < predictions.length; n++) {
-      // If we are over 66% sure we are sure we classified it right, draw it!
-      if (predictions[n].score > 0.66) {
-        const p = document.createElement('p');
-        p.innerText = predictions[n].class  + ' - with ' 
-            + Math.round(parseFloat(predictions[n].score) * 100) 
-            + '% confidence.';
-        p.style = 'margin-left: ' + predictions[n].bbox[0] + 'px; margin-top: '
-            + (predictions[n].bbox[1] - 10) + 'px; width: ' 
-            + (predictions[n].bbox[2] - 10) + 'px; top: 0; left: 0;';
+function loadPic(src) {
+  document.getElementById("pic").setAttribute('src',src);
+}
 
-        const highlighter = document.createElement('div');
-        highlighter.setAttribute('class', 'highlighter');
-        highlighter.style = 'left: ' + predictions[n].bbox[0] + 'px; top: '
-            + predictions[n].bbox[1] + 'px; width: ' 
-            + predictions[n].bbox[2] + 'px; height: '
-            + predictions[n].bbox[3] + 'px;';
+function loadInitialPic() {
+  loadPic('imgs/img'+getRandomInt(NUM_PICS)+'.jpg');
+}
 
-        liveView.appendChild(highlighter);
-        liveView.appendChild(p);
-        children.push(highlighter);
-        children.push(p);
+function populatePicPalette() {
+  let picContainer = document.getElementById('pic-palette');
+  for (i=0; i<NUM_PICS ;++i) {
+    let img = document.createElement("img");
+    img.src = 'imgs/img'+i+'.jpg';
+    img.height = 50;
+    img.width  = 50;
+    img.setAttribute('onclick', "loadPic(this.src);");
+
+    picContainer.appendChild(img);
+  }
+}
+
+function loadPicFromFile(evt) {
+  var tgt = evt.target || window.event.srcElement,
+      files = tgt.files;
+
+  // Test FileReader support
+  if (FileReader && files && files.length) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        loadPic(fr.result);  
+        //document.getElementById(outImage).src = fr.result;
       }
-    }
-    
-    // Call this function again to keep predicting when the browser is ready.
-    window.requestAnimationFrame(predictWebcam);
-  });
+      fr.readAsDataURL(files[0]);
+  }
+  // Not supported
+  else {
+      alert('Picture load not supported!');
+  }
 }
 
+//
+// MAIN
+//
 
+// action: trigger classification when new image is loaded in <img>
+document.getElementById('pic').onload = function() {
+  classifyPic();
+}
+// action: enable image loading  
+document.getElementById('pic-picker').onchange = function (evt) {
+  loadPicFromFile(evt);
+}
 
+loadModel().then( function() {
+  console.info('Model tflite loaded.');
+
+  loadInitialPic();
+  populatePicPalette();
+});
 
