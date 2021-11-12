@@ -21,7 +21,8 @@ if (status) {
 }
 
 //TODO load from 'labels.txt' 
-const CLASS_LABEL = ['back_stance', 'bow_stance', 'cat_stance', 'horse_stance', 'unrecognised_stance'];
+const CLASS_LABEL =  ['back_stance', 'bow_stance', 'cat_stance', 'horse_stance', 'unrecognised_stance'];
+// ['back_stance', 'horse_stance', 'unrecognised_stance']; //
 
 
 // classifier tfjs web model
@@ -69,7 +70,7 @@ function classifyPic() {
 
 async function loadModel() {
   // load 4-stances classifier web model
-  const MODEL_URL = 'model-uint8.tfjs/model.json';
+  const MODEL_URL =  'model-uint8.tfjs/model.json';  // 'model-uint8-back-horse.tfjs/model.json'; //
   webAllModel = await tf.loadGraphModel(MODEL_URL);
   //console.info(webAllModel);
 }
@@ -120,23 +121,34 @@ function loadPicFromFile(evt) {
   }
 }
 
+
+// action: trigger classification when new image is loaded in <img>
+function triggerClassificationOnPicLoading() {
+  document.getElementById('pic').onload = function() {
+    classifyPic();
+  }
+}
+
+// action: enable image loading from file
+function enableImageLoadFromFile() {
+  document.getElementById('pic-picker').onchange = function (evt) {
+    loadPicFromFile(evt);
+  }
+} 
+
+
 //
 // MAIN
 //
 
-// action: trigger classification when new image is loaded in <img>
-document.getElementById('pic').onload = function() {
-  classifyPic();
-}
-// action: enable image loading  
-document.getElementById('pic-picker').onchange = function (evt) {
-  loadPicFromFile(evt);
-}
-
 loadModel().then( function() {
   console.info('Model tflite loaded.');
 
+  triggerClassificationOnPicLoading();
+
   loadInitialPic();
   populatePicPalette();
+
+  enableImageLoadFromFile();
 });
 
